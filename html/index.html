@@ -50,38 +50,27 @@
     </div>
 
     <div id="jailHud" class="hidden">
-        <div class="jail-card">
-            <div class="jail-card-glow"></div>
-            <div class="jail-card-content">
-                <div class="jail-header">
-                    <div class="jail-icon">
-                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                            <rect x="5" y="11" width="14" height="10" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
-                            <circle cx="12" cy="16" r="1.5" fill="currentColor"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <span class="jail-badge">Admin Jail</span>
-                        <p class="jail-subtitle">Du bist vorübergehend eingesperrt</p>
-                    </div>
-                </div>
-
-                <div class="jail-admin-block">
-                    <span class="jail-label">Eingesperrt von</span>
-                    <h2 id="jailAdminName">Admin</h2>
-                </div>
-
-                <div class="jail-time-block">
-                    <span id="jailTimeValue" class="jail-time-value">00:00</span>
-                    <span class="jail-time-label">Restzeit</span>
-                </div>
-
-                <div class="jail-reason-block">
-                    <span class="jail-label">Grund</span>
-                    <p id="jailReasonText">-</p>
-                </div>
+        <div class="jail-hud-wrap">
+            <div class="jail-cuffs" aria-hidden="true">
+                <svg class="cuff-icon" viewBox="0 0 64 64" fill="none">
+                    <circle cx="18" cy="32" r="11" stroke="currentColor" stroke-width="3"/>
+                    <circle cx="46" cy="32" r="11" stroke="currentColor" stroke-width="3"/>
+                    <path d="M29 32h6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M18 21v-5M18 43v5M46 21v-5M46 43v5" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                </svg>
             </div>
+
+            <h1 id="jailTitle" class="jail-title">ADMINJAIL: 1 MINUTE</h1>
+
+            <p class="jail-admin-line">
+                <span class="jail-prefix">Admin:</span>
+                <span id="jailAdminName" class="jail-admin-name">Admin</span>
+            </p>
+
+            <p class="jail-reason-line">
+                <span class="jail-prefix">Grund:</span>
+                <span id="jailReasonText" class="jail-reason-text">-</span>
+            </p>
         </div>
     </div>
 

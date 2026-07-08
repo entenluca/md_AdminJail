@@ -193,169 +193,96 @@ tbody tr:hover {
 /* Jail HUD Overlay */
 #jailHud {
     position: fixed;
+    top: 5.5vh;
     left: 50%;
-    bottom: 4.5vh;
     transform: translateX(-50%);
     z-index: 50;
     pointer-events: none;
-    animation: jailHudIn 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    animation: jailHudIn 0.35s ease;
 }
 
 #jailHud.hiding {
-    animation: jailHudOut 0.35s ease forwards;
+    animation: jailHudOut 0.25s ease forwards;
 }
 
-.jail-card {
-    position: relative;
-    min-width: min(420px, 90vw);
-    max-width: 460px;
-    border-radius: 20px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 90, 90, 0.28);
-    box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.45),
-        0 0 0 1px rgba(255, 255, 255, 0.04) inset;
-    backdrop-filter: blur(18px);
-}
-
-.jail-card-glow {
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(circle at top right, rgba(255, 77, 77, 0.22), transparent 55%),
-        linear-gradient(160deg, rgba(24, 28, 40, 0.96) 0%, rgba(14, 16, 24, 0.94) 100%);
-}
-
-.jail-card-content {
-    position: relative;
-    padding: 22px 24px 20px;
+.jail-hud-wrap {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-}
-
-.jail-header {
-    display: flex;
     align-items: center;
-    gap: 14px;
+    text-align: center;
+    gap: 6px;
+    min-width: 320px;
 }
 
-.jail-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    display: grid;
-    place-items: center;
-    color: #ff6b6b;
-    background: rgba(255, 77, 77, 0.12);
-    border: 1px solid rgba(255, 77, 77, 0.25);
-    flex-shrink: 0;
-}
-
-.jail-icon svg {
-    width: 24px;
-    height: 24px;
-}
-
-.jail-badge {
-    display: inline-block;
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #ff7b7b;
-}
-
-.jail-subtitle {
-    margin-top: 3px;
-    color: var(--muted);
-    font-size: 0.88rem;
-}
-
-.jail-admin-block {
-    padding: 14px 16px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.jail-admin-block h2 {
-    margin-top: 4px;
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: #fff;
-    letter-spacing: 0.01em;
-}
-
-.jail-label {
-    display: block;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    font-weight: 600;
-}
-
-.jail-time-block {
+.jail-cuffs {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 16px 12px;
-    border-radius: 16px;
-    background: linear-gradient(180deg, rgba(255, 77, 77, 0.14) 0%, rgba(255, 77, 77, 0.06) 100%);
-    border: 1px solid rgba(255, 77, 77, 0.22);
+    margin-bottom: 2px;
+    color: #f2f4f8;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.75));
 }
 
-.jail-time-value {
-    font-size: 2.4rem;
+.cuff-icon {
+    width: 42px;
+    height: 42px;
+}
+
+.jail-title {
+    font-size: clamp(1.45rem, 2.2vw, 2rem);
     font-weight: 800;
-    line-height: 1;
-    color: #ff5f5f;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.04em;
-    text-shadow: 0 0 24px rgba(255, 77, 77, 0.35);
-}
-
-.jail-time-label {
-    margin-top: 6px;
-    font-size: 0.82rem;
-    color: #ffb4b4;
-    font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+    color: #ffffff;
+    text-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.95),
+        0 0 18px rgba(0, 0, 0, 0.55);
+    line-height: 1.15;
+    white-space: nowrap;
 }
 
-.jail-reason-block {
-    padding-top: 2px;
+.jail-admin-line,
+.jail-reason-line {
+    font-size: clamp(0.95rem, 1.35vw, 1.08rem);
+    font-weight: 600;
+    line-height: 1.35;
+    text-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.95),
+        0 0 14px rgba(0, 0, 0, 0.45);
 }
 
-.jail-reason-block p {
-    margin-top: 6px;
-    font-size: 0.98rem;
-    line-height: 1.45;
-    color: #e8ebf3;
-    word-break: break-word;
+.jail-prefix {
+    color: #ffffff;
+}
+
+.jail-admin-name {
+    color: #6ecfff;
+    font-weight: 700;
+}
+
+.jail-reason-text {
+    color: #c5ccd6;
+    font-weight: 500;
 }
 
 @keyframes jailHudIn {
     from {
         opacity: 0;
-        transform: translateX(-50%) translateY(18px) scale(0.96);
+        transform: translateX(-50%) translateY(-10px);
     }
     to {
         opacity: 1;
-        transform: translateX(-50%) translateY(0) scale(1);
+        transform: translateX(-50%) translateY(0);
     }
 }
 
 @keyframes jailHudOut {
     from {
         opacity: 1;
-        transform: translateX(-50%) translateY(0) scale(1);
+        transform: translateX(-50%) translateY(0);
     }
     to {
         opacity: 0;
-        transform: translateX(-50%) translateY(14px) scale(0.96);
+        transform: translateX(-50%) translateY(-8px);
     }
 }

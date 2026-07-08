@@ -1,7 +1,7 @@
 const app = document.getElementById('app');
 const jailHud = document.getElementById('jailHud');
 const jailAdminName = document.getElementById('jailAdminName');
-const jailTimeValue = document.getElementById('jailTimeValue');
+const jailTitle = document.getElementById('jailTitle');
 const jailReasonText = document.getElementById('jailReasonText');
 const playerTableBody = document.getElementById('playerTableBody');
 const jailCount = document.getElementById('jailCount');
@@ -18,17 +18,10 @@ function post(endpoint, data = {}) {
     });
 }
 
-function formatTime(totalSeconds) {
-    const seconds = Math.max(totalSeconds, 0);
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    if (hours > 0) {
-        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    }
-
-    return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+function formatJailTitle(totalSeconds) {
+    const minutes = Math.max(Math.ceil(totalSeconds / 60), 0);
+    const label = minutes === 1 ? 'MINUTE' : 'MINUTEN';
+    return `ADMINJAIL: ${minutes} ${label}`;
 }
 
 function showJailHud(data) {
@@ -38,9 +31,9 @@ function showJailHud(data) {
     }
 
     jailHud.classList.remove('hiding', 'hidden');
+    jailTitle.textContent = formatJailTitle(data.remainingSeconds || 0);
     jailAdminName.textContent = data.admin || 'Unbekannt';
     jailReasonText.textContent = data.reason || '-';
-    jailTimeValue.textContent = formatTime(data.remainingSeconds || 0);
 }
 
 function updateJailHud(data) {
@@ -49,7 +42,7 @@ function updateJailHud(data) {
         return;
     }
 
-    jailTimeValue.textContent = formatTime(data.remainingSeconds || 0);
+    jailTitle.textContent = formatJailTitle(data.remainingSeconds || 0);
 
     if (data.admin) {
         jailAdminName.textContent = data.admin;
