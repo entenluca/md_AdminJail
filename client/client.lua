@@ -12,9 +12,38 @@ local function getCurrentTime()
     return GetCloudTimeAsInt()
 end
 
-local function formatRemainingTime(endTime)
-    local remaining = math.max(endTime - getCurrentTime(), 0)
-    return math.ceil(remaining / 60)
+local function formatRemainingSeconds(endTime)
+    return math.max(endTime - getCurrentTime(), 0)
+end
+
+local function updateJailHud()
+    if not isJailed or not jailData.endTime then
+        return
+    end
+
+    SendNUIMessage({
+        action = 'updateJailHud',
+        admin = jailData.admin,
+        reason = jailData.reason,
+        remainingSeconds = formatRemainingSeconds(jailData.endTime)
+    })
+end
+
+local function showJailHud()
+    if not Config.ShowJailTimer then
+        return
+    end
+
+    SendNUIMessage({
+        action = 'showJailHud',
+        admin = jailData.admin or 'Unbekannt',
+        reason = jailData.reason or '-',
+        remainingSeconds = formatRemainingSeconds(jailData.endTime or getCurrentTime())
+    })
+end
+
+local function hideJailHud()
+    SendNUIMessage({ action = 'hideJailHud' })
 end
 
 local function teleportToCoords(coords)
@@ -57,9 +86,11 @@ RegisterNetEvent('md_adminjail:setJailed', function(data)
         isJailed = true
         jailData = data
         teleportToCoords(data.jailCoords)
+        showJailHud()
     else
         isJailed = false
         jailData = {}
+        hideJailHud()
 
         if data.releaseCoords then
             teleportToCoords(data.releaseCoords)
@@ -145,19 +176,8 @@ end)
 CreateThread(function()
     while true do
         if isJailed and Config.ShowJailTimer and jailData.endTime then
-            local minutes = formatRemainingTime(jailData.endTime)
-            local text = Config.Locale.jail_timer:format(minutes, jailData.reason or '-')
-
-            SetTextFont(4)
-            SetTextScale(0.45, 0.45)
-            SetTextColour(255, 80, 80, 220)
-            SetTextOutline()
-            SetTextCentre(true)
-            BeginTextCommandDisplayText('STRING')
-            AddTextComponentSubstringPlayerName(text)
-            EndTextCommandDisplayText(0.5, 0.92)
-
-            Wait(0)
+            updateJailHud()
+            Wait(1000)
         else
             Wait(1000)
         end

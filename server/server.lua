@@ -105,8 +105,10 @@ end
 local function syncJailState(target, entry)
     TriggerClientEvent('md_adminjail:setJailed', target, {
         active = true,
+        admin = entry.admin,
         reason = entry.reason,
         endTime = entry.endTime,
+        totalMinutes = entry.minutes,
         jailCoords = {
             x = Config.JailCoords.x,
             y = Config.JailCoords.y,

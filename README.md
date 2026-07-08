@@ -51,7 +51,7 @@ Alle Einstellungen findest du in `config.lua`:
 Nur Spieler mit der ACE-Permission `adminjail.admin` können:
 
 - `/adminjail` nutzen
-- `/unjail` nutzen
+- `/adminjailrelease` nutzen
 - das AdminJail Panel öffnen
 
 ## Abhängigkeiten
