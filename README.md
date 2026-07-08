@@ -33,7 +33,7 @@ add_principal identifier.license:DEINE_LICENSE group.admin
 | Command | Beschreibung | Beispiel |
 |---------|--------------|----------|
 | `/adminjail` | Spieler einsperren | `/adminjail 5 30 RDM im Safezone` |
-| `/unjail` | Spieler freilassen | `/unjail 5` |
+| `/adminjailrelease` | Spieler freilassen | `/adminjailrelease 5` |
 | `/adminjailpanel` | Admin-Panel öffnen | `/adminjailpanel` |
 
 ## Konfiguration

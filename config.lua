@@ -18,7 +18,7 @@ Config.MaxJailMinutes = 1440
 -- Commands
 Config.Commands = {
     jail = 'adminjail',
-    unjail = 'unjail',
+    unjail = 'adminjailrelease',
     panel = 'adminjailpanel'
 }
 

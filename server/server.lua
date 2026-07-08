@@ -67,6 +67,36 @@ local function buildJailEntry(source, minutes, reason, adminSource)
     }
 end
 
+local function getJailedEntry(target)
+    if not target then
+        return nil
+    end
+
+    local entry = jailedPlayers[target]
+    if entry then
+        entry.source = target
+        return entry
+    end
+
+    local license = getPlayerLicense(target)
+    if not license then
+        return nil
+    end
+
+    entry = jailedByLicense[license]
+    if not entry then
+        return nil
+    end
+
+    entry.source = target
+    jailedPlayers[target] = entry
+    return entry
+end
+
+local function isPlayerJailed(target)
+    return getJailedEntry(target) ~= nil
+end
+
 local function getRemainingMinutes(entry)
     local remaining = math.ceil((entry.endTime - os.time()) / 60)
     return math.max(remaining, 0)
@@ -88,7 +118,7 @@ local function syncJailState(target, entry)
 end
 
 local function releasePlayer(target, adminSource, silent)
-    local entry = jailedPlayers[target]
+    local entry = getJailedEntry(target)
     if not entry then
         return false
     end
@@ -124,7 +154,7 @@ local function releasePlayer(target, adminSource, silent)
 end
 
 local function jailPlayer(target, minutes, reason, adminSource)
-    if jailedPlayers[target] then
+    if isPlayerJailed(target) then
         return false, 'already_jailed'
     end
 
@@ -158,20 +188,25 @@ end
 local function getPanelData()
     local data = {}
 
-    for source, entry in pairs(jailedPlayers) do
-        local remaining = getRemainingMinutes(entry)
-        if remaining <= 0 then
-            releasePlayer(source, nil, true)
-        else
-            data[#data + 1] = {
-                id = source,
-                name = entry.name,
-                minutes = remaining,
-                totalMinutes = entry.minutes,
-                reason = entry.reason,
-                admin = entry.admin,
-                jailedAt = entry.jailedAt
-            }
+    for _, playerId in ipairs(GetPlayers()) do
+        local source = tonumber(playerId)
+        local entry = source and getJailedEntry(source)
+
+        if entry then
+            local remaining = getRemainingMinutes(entry)
+            if remaining <= 0 then
+                releasePlayer(source, nil, true)
+            else
+                data[#data + 1] = {
+                    id = source,
+                    name = entry.name,
+                    minutes = remaining,
+                    totalMinutes = entry.minutes,
+                    reason = entry.reason,
+                    admin = entry.admin,
+                    jailedAt = entry.jailedAt
+                }
+            end
         end
     end
 
@@ -226,7 +261,7 @@ end)
 
 RegisterNetEvent('md_adminjail:requestState', function()
     local source = source
-    local entry = jailedPlayers[source]
+    local entry = getJailedEntry(source)
 
     if not entry then
         TriggerClientEvent('md_adminjail:setJailed', source, { active = false })
@@ -244,7 +279,7 @@ end)
 
 AddEventHandler('playerDropped', function()
     local source = source
-    local entry = jailedPlayers[source]
+    local entry = getJailedEntry(source)
 
     if entry and entry.license then
         jailedByLicense[entry.license] = entry
@@ -261,25 +296,14 @@ AddEventHandler('playerJoining', function()
             return
         end
 
-        local license = getPlayerLicense(source)
-        local entry = jailedPlayers[source] or (license and jailedByLicense[license])
-
+        local entry = getJailedEntry(source)
         if not entry then
             return
         end
 
         if getRemainingMinutes(entry) <= 0 then
-            if license then
-                jailedByLicense[license] = nil
-            end
+            releasePlayer(source, nil, true)
             return
-        end
-
-        entry.source = source
-        jailedPlayers[source] = entry
-
-        if license then
-            jailedByLicense[license] = entry
         end
 
         syncJailState(source, entry)
@@ -290,8 +314,11 @@ CreateThread(function()
     while true do
         Wait(30000)
 
-        for source, entry in pairs(jailedPlayers) do
-            if getRemainingMinutes(entry) <= 0 then
+        for _, playerId in ipairs(GetPlayers()) do
+            local source = tonumber(playerId)
+            local entry = source and getJailedEntry(source)
+
+            if entry and getRemainingMinutes(entry) <= 0 then
                 releasePlayer(source, nil, false)
             end
         end
