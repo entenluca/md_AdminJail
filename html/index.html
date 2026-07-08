@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdminJail Panel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app" class="hidden">
+        <div class="panel">
+            <header class="panel-header">
+                <div>
+                    <h1>AdminJail</h1>
+                    <p>Verwaltung eingesperrter Spieler</p>
+                </div>
+                <div class="header-actions">
+                    <button id="refreshBtn" class="btn btn-secondary">Aktualisieren</button>
+                    <button id="closeBtn" class="btn btn-danger">Schließen</button>
+                </div>
+            </header>
+
+            <section class="stats">
+                <div class="stat-card">
+                    <span class="stat-label">Eingesperrt</span>
+                    <span id="jailCount" class="stat-value">0</span>
+                </div>
+            </section>
+
+            <section class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Restzeit</th>
+                            <th>Grund</th>
+                            <th>Admin</th>
+                            <th>Aktion</th>
+                        </tr>
+                    </thead>
+                    <tbody id="playerTableBody">
+                        <tr class="empty-row">
+                            <td colspan="6">Keine Spieler im AdminJail</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
