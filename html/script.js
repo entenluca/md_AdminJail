@@ -92,6 +92,18 @@ function validatePopup() {
     setSquareState(popupAmountCheck, Number(popupAmount.value) > 0);
 }
 
+function getAmountIconClass(typeKey) {
+    if (usesTime(typeKey)) {
+        return 'clock-icon';
+    }
+
+    if (typeKey === 'facility') {
+        return 'toilet-icon';
+    }
+
+    return 'broom-icon';
+}
+
 function setSelectedType(typeKey) {
     selectedType = typeKey;
 
@@ -101,10 +113,8 @@ function setSelectedType(typeKey) {
 
     const isTime = usesTime(selectedType);
     popupAmountLabel.textContent = isTime ? 'Time' : 'Punkte';
-    amountIcon.className = `form-icon ${isTime ? 'clock-icon' : 'broom-icon'}`;
+    amountIcon.className = `form-icon ${getAmountIconClass(selectedType)}`;
 
-    // Im Create-Modus wird Zeit/Punkte bewusst NICHT vorausgefüllt.
-    // Der Admin muss den Wert selbst eintragen.
     validatePopup();
 }
 
@@ -324,8 +334,10 @@ function updateJailHud(data) {
         const done = Number(data.tasksCompleted) || 0;
         const required = Number(data.tasksRequired) || 0;
         const remaining = Math.max(required - done, 0);
+        const jailTypeKey = String(data.jailTypeKey || '').toLowerCase();
+
         jailValueLabel.textContent = 'Points:';
-        jailValueIcon.className = 'hud-icon broom-icon';
+        jailValueIcon.className = `hud-icon ${jailTypeKey === 'facility' ? 'toilet-icon' : 'broom-icon'}`;
         jailValueText.textContent = `${remaining} (${required})`;
     }
 }

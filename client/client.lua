@@ -28,7 +28,8 @@ local function updateJailHud()
         action = 'updateJailHud',
         admin = jailData.admin,
         reason = jailData.reason,
-        jailType = jailData.jailTypeLabel or jailData.jailType
+        jailType = jailData.jailTypeLabel or jailData.jailType,
+        jailTypeKey = jailData.jailType
     }
 
     if jailData.jailType == 'standard' then
@@ -50,7 +51,8 @@ local function showJailHud()
         action = 'showJailHud',
         admin = jailData.admin or 'Unbekannt',
         reason = jailData.reason or '-',
-        jailType = jailData.jailTypeLabel or jailData.jailType or 'Standard Jail'
+        jailType = jailData.jailTypeLabel or jailData.jailType or 'Standard Jail',
+        jailTypeKey = jailData.jailType
     }
 
     if jailData.jailType == 'standard' then

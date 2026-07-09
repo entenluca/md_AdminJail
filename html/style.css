@@ -25,7 +25,8 @@ body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: transparent;
+    background: transparent !important;
+    background-color: rgba(0, 0, 0, 0) !important;
     font-family: "Arial Narrow", "Roboto Condensed", "Segoe UI", Arial, sans-serif;
     color: var(--text);
 }
@@ -51,13 +52,33 @@ button {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(circle at center, rgba(1, 13, 18, 0.18), rgba(1, 8, 11, 0.50));
+    background: transparent;
+    pointer-events: none;
+}
+
+.admin-root:not(.hidden) {
+    pointer-events: auto;
+}
+
+.admin-root:not(.hidden)::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(0, 28, 36, 0.14), rgba(0, 10, 14, 0.38));
+    pointer-events: none;
+}
+
+.ws-panel,
+.jail-dialog {
+    pointer-events: auto;
 }
 
 .ws-panel {
     position: relative;
+    z-index: 2;
     width: min(830px, 86vw);
     height: min(565px, 74vh);
+    margin: 0 auto;
     padding: 26px 29px 28px;
     overflow: hidden;
     border-radius: 13px;
@@ -90,7 +111,7 @@ button {
     display: grid;
     grid-template-columns: 1fr auto auto;
     gap: 18px;
-    align-items: start;
+    align-items: center;
     margin-bottom: 26px;
 }
 
@@ -129,17 +150,12 @@ button {
 .form-icon,
 .hud-icon,
 .selected-icon,
-.type-house,
+.type-icon,
 .type-title i {
     display: inline-block;
     vertical-align: middle;
     position: relative;
-}
-
-.mini-cuff::before,
-.type-house::before {
-    content: "♣";
-    font-size: 12px;
+    flex: 0 0 auto;
 }
 
 .ws-tabs {
@@ -170,49 +186,7 @@ button {
     width: 17px;
     height: 17px;
     margin-right: 8px;
-    border-radius: 50%;
-}
-
-.players-icon::before,
-.jail-icon::before,
-.admin-icon::before,
-.selected-icon::before {
-    content: "";
-    position: absolute;
-    left: 3px;
-    top: 2px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: currentColor;
-    box-shadow: 6px 7px 0 -3px currentColor;
-}
-
-.players-icon::after,
-.jail-icon::after,
-.admin-icon::after,
-.selected-icon::after {
-    content: "";
-    position: absolute;
-    left: 1px;
-    bottom: 1px;
-    width: 11px;
-    height: 6px;
-    border-radius: 8px 8px 2px 2px;
-    background: currentColor;
-}
-
-.jail-icon::before {
-    width: 10px;
-    height: 10px;
-    box-shadow: none;
-}
-
-.jail-icon::after {
-    left: 3px;
-    bottom: 2px;
-    width: 12px;
-    height: 7px;
+    color: currentColor;
 }
 
 .ws-close-text {
@@ -298,10 +272,15 @@ button {
     display: grid;
     grid-template-columns: 1fr 80px 65px;
     gap: 12px;
+    align-items: center;
     margin-top: 25px;
     color: rgba(232, 247, 251, 0.44);
     font-size: 15px;
     font-weight: 800;
+}
+
+.ws-list-head span:last-child {
+    justify-self: center;
 }
 
 .ws-list-head span:first-child {
@@ -418,38 +397,8 @@ button {
 }
 
 .row-action {
-    width: 43px;
-    height: 43px;
     justify-self: center;
-    display: grid;
-    place-items: center;
-    color: #15242b;
-    background: #f5fbff;
-    border-radius: 2px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.22), inset 0 0 0 1px rgba(0,0,0,0.04);
-    transition: 120ms ease;
-}
-
-.row-action:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.34);
-}
-
-.row-action::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    border: 3px solid currentColor;
-}
-
-.row-action.jailed::before {
-    border: 0;
-    border-radius: 2px;
-    width: 16px;
-    height: 16px;
-    background: currentColor;
-    clip-path: polygon(0 0, 100% 50%, 0 100%);
+    align-self: center;
 }
 
 .empty-list {
@@ -462,11 +411,11 @@ button {
 
 /* Jail popup */
 .jail-dialog {
-    position: absolute;
-    z-index: 8;
+    position: fixed;
+    z-index: 60;
     top: 50%;
     left: 50%;
-    width: 426px;
+    width: min(426px, 92vw);
     transform: translate(-50%, -50%);
     overflow: hidden;
     padding: 28px 28px 24px;
@@ -798,11 +747,15 @@ button {
     z-index: 18;
     transform: translateX(-50%);
     pointer-events: none;
+    display: flex;
+    justify-content: center;
+    width: 100%;
 }
 
 .jail-hud-card {
     position: relative;
-    width: 470px;
+    width: min(470px, 92vw);
+    margin: 0 auto;
     overflow: hidden;
     padding: 24px 23px 19px;
     border-radius: 9px;
@@ -837,11 +790,17 @@ button {
     margin-top: 24px;
 }
 
+.hud-box div {
+    min-width: 0;
+    text-align: left;
+}
+
 .hud-bottom-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
     margin-top: 9px;
+    align-items: stretch;
 }
 
 .hud-box span {
@@ -871,12 +830,13 @@ button {
 
 /* Minigame */
 .overlay {
-    width: 100vw;
-    height: 100vh;
+    position: fixed;
+    inset: 0;
+    z-index: 70;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(4, 13, 17, 0.68);
+    background: rgba(4, 13, 17, 0.55);
 }
 
 .minigame-panel {
@@ -977,10 +937,8 @@ button {
     --white-soft: rgba(240, 252, 255, 0.86);
 }
 
-.admin-root {
-    background:
-        radial-gradient(circle at 50% 45%, rgba(0, 217, 255, 0.09), transparent 27%),
-        radial-gradient(circle at center, rgba(1, 13, 18, 0.22), rgba(0, 5, 8, 0.58));
+.admin-root:not(.hidden)::before {
+    background: radial-gradient(circle at center, rgba(0, 28, 36, 0.12), rgba(0, 10, 14, 0.34));
 }
 
 .ws-panel,
@@ -1424,6 +1382,61 @@ button {
     clip-path: polygon(18% 0, 100% 0, 80% 100%, 0 100%);
 }
 
+.type-icon {
+    width: 21px;
+    height: 21px;
+    margin-right: 0;
+    color: currentColor;
+}
+
+.jail-type-icon::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 5px;
+    width: 17px;
+    height: 12px;
+    border: 2px solid currentColor;
+    border-radius: 3px;
+    background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 6px);
+}
+
+.jail-type-icon::after {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 2px;
+    width: 7px;
+    height: 6px;
+    border: 2px solid currentColor;
+    border-bottom: 0;
+    border-radius: 7px 7px 0 0;
+}
+
+.toilet-icon::before {
+    content: "";
+    position: absolute;
+    left: 11px;
+    top: 11px;
+    width: 16px;
+    height: 13px;
+    border: 2px solid currentColor;
+    border-radius: 0 0 10px 10px;
+    border-top: 0;
+    background: transparent;
+}
+
+.toilet-icon::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    width: 22px;
+    height: 4px;
+    border-radius: 3px;
+    background: currentColor;
+}
+
 .type-house {
     width: 21px;
     height: 21px;
@@ -1439,7 +1452,8 @@ button {
     box-shadow: none;
 }
 
-.type-btn[data-type="standard"] .type-house::before {
+.type-btn[data-type="standard"] .type-house::before,
+.type-btn[data-type="standard"] .jail-type-icon::before {
     left: 2px;
     top: 5px;
     width: 17px;
@@ -1449,7 +1463,8 @@ button {
     background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 6px);
 }
 
-.type-btn[data-type="standard"] .type-house::after {
+.type-btn[data-type="standard"] .type-house::after,
+.type-btn[data-type="standard"] .jail-type-icon::after {
     left: 7px;
     top: 2px;
     width: 7px;
@@ -1459,7 +1474,8 @@ button {
     border-radius: 7px 7px 0 0;
 }
 
-.type-btn[data-type="community"] .type-house::before {
+.type-btn[data-type="community"] .type-house::before,
+.type-btn[data-type="community"] .broom-icon::before {
     left: 10px;
     top: 1px;
     width: 4px;
@@ -1469,7 +1485,8 @@ button {
     transform: rotate(-36deg);
 }
 
-.type-btn[data-type="community"] .type-house::after {
+.type-btn[data-type="community"] .type-house::after,
+.type-btn[data-type="community"] .broom-icon::after {
     left: 12px;
     top: 13px;
     width: 13px;
@@ -1479,26 +1496,28 @@ button {
     clip-path: polygon(15% 0, 100% 0, 78% 100%, 0 100%);
 }
 
-.type-btn[data-type="facility"] .type-house::before {
+.type-btn[data-type="facility"] .type-house::before,
+.type-btn[data-type="facility"] .toilet-icon::before {
     left: 3px;
-    top: 3px;
+    top: 10px;
     width: 15px;
-    height: 15px;
-    border: 3px solid currentColor;
-    border-radius: 50%;
-    background: radial-gradient(circle, transparent 0 3px, currentColor 3px 4px, transparent 4px);
+    height: 12px;
+    border: 2px solid currentColor;
+    border-radius: 0 0 9px 9px;
+    border-top: 0;
+    background: transparent;
 }
 
-.type-btn[data-type="facility"] .type-house::after {
-    left: 9px;
-    top: 0;
-    width: 3px;
-    height: 21px;
-    border-radius: 2px;
+.type-btn[data-type="facility"] .type-house::after,
+.type-btn[data-type="facility"] .toilet-icon::after {
+    left: 1px;
+    top: 7px;
+    width: 19px;
+    height: 4px;
+    border-radius: 3px;
     background: currentColor;
-    box-shadow: 0 0 0 0 currentColor;
-    transform: rotate(45deg);
-    opacity: 0.95;
+    transform: none;
+    opacity: 1;
 }
 
 .row-action {
