@@ -6,9 +6,11 @@ const jailCount = document.getElementById('jailCount');
 const closeBtn = document.getElementById('closeBtn');
 const adminSearch = document.getElementById('adminSearch');
 const activeListLabel = document.getElementById('activeListLabel');
-const tabButtons = document.querySelectorAll('.ws-tab');
+const tabButtons = document.querySelectorAll('.tab');
 
 const jailPopup = document.getElementById('jailPopup');
+const modalEyebrow = document.getElementById('modalEyebrow');
+const modalTitle = document.getElementById('modalTitle');
 const selectedPlayerBox = document.querySelector('.selected-player');
 const popupPlayerName = document.getElementById('popupPlayerName');
 const popupPlayerId = document.getElementById('popupPlayerId');
@@ -21,20 +23,27 @@ const popupCancelBtn = document.getElementById('popupCancelBtn');
 const popupReleaseBtn = document.getElementById('popupReleaseBtn');
 const popupStartBtn = document.getElementById('popupStartBtn');
 const amountIcon = document.getElementById('amountIcon');
-const typeButtons = document.querySelectorAll('.type-btn');
+const typeButtons = document.querySelectorAll('.type-card');
 const dialogActions = document.querySelector('.dialog-actions');
 
 const jailTitle = document.getElementById('jailTitle');
 const jailTypeText = document.getElementById('jailTypeText');
 const jailAdminName = document.getElementById('jailAdminName');
 const jailReasonText = document.getElementById('jailReasonText');
-const jailValueIcon = document.getElementById('jailValueIcon');
 const jailValueLabel = document.getElementById('jailValueLabel');
 const jailValueText = document.getElementById('jailValueText');
 
 const minigameGrid = document.getElementById('minigameGrid');
 const minigameTimer = document.getElementById('minigameTimer');
 const minigameProgress = document.getElementById('minigameProgress');
+
+const ICONS = {
+    clock: '<circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+    broom: '<path d="M9 20l-2-8M15 20l2-8M7 12h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12 4v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+    toilet: '<path d="M8 10h8v10H8z" stroke="currentColor" stroke-width="1.6"/><path d="M10 6h4v4h-4zM6 20h12" stroke="currentColor" stroke-width="1.6"/>',
+    jail: '<rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/>',
+    edit: '<path d="M4 16l2-6 6-2 8 8-6 2-2 6-8-8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>'
+};
 
 let permissions = { jail: true, unjail: true, edit: true };
 let jailTypes = {};
@@ -88,20 +97,26 @@ function setSquareState(button, valid) {
 }
 
 function validatePopup() {
+    if (popupMode === 'edit') {
+        setSquareState(popupReasonCheck, true);
+        setSquareState(popupAmountCheck, Number(popupAmount.value) > 0);
+        return;
+    }
+
     setSquareState(popupReasonCheck, popupReason.value.trim().length > 0);
     setSquareState(popupAmountCheck, Number(popupAmount.value) > 0);
 }
 
-function getAmountIconClass(typeKey) {
+function setAmountIcon(typeKey) {
+    let iconKey = 'broom';
+
     if (usesTime(typeKey)) {
-        return 'clock-icon';
+        iconKey = 'clock';
+    } else if (typeKey === 'facility') {
+        iconKey = 'toilet';
     }
 
-    if (typeKey === 'facility') {
-        return 'toilet-icon';
-    }
-
-    return 'broom-icon';
+    amountIcon.innerHTML = ICONS[iconKey];
 }
 
 function setSelectedType(typeKey) {
@@ -112,9 +127,8 @@ function setSelectedType(typeKey) {
     });
 
     const isTime = usesTime(selectedType);
-    popupAmountLabel.textContent = isTime ? 'Time' : 'Punkte';
-    amountIcon.className = `form-icon ${getAmountIconClass(selectedType)}`;
-
+    popupAmountLabel.textContent = isTime ? 'Zeit (Minuten)' : 'Anzahl Aufgaben';
+    setAmountIcon(selectedType);
     validatePopup();
 }
 
@@ -139,6 +153,7 @@ function normalizePlayer(player) {
 function setActiveTab(tabName) {
     activeTab = tabName;
     tabButtons.forEach((button) => button.classList.toggle('active', button.dataset.tab === activeTab));
+    activeListLabel.textContent = activeTab === 'jailed' ? 'Inhaftierte Spieler' : 'Spielerliste';
     renderList();
 }
 
@@ -148,6 +163,7 @@ function getVisiblePlayers() {
 
     return source.map(normalizePlayer).filter((player) => {
         if (!search) return true;
+
         return String(player.id).includes(search)
             || String(player.name).toLowerCase().includes(search)
             || String(player.reason || '').toLowerCase().includes(search)
@@ -155,59 +171,76 @@ function getVisiblePlayers() {
     });
 }
 
+function createActionIcon(jailed) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+
+    if (jailed) {
+        svg.innerHTML = ICONS.edit;
+    } else {
+        svg.innerHTML = ICONS.jail;
+    }
+
+    return svg;
+}
+
 function renderList() {
     const visible = getVisiblePlayers();
     playerList.innerHTML = '';
     jailCount.textContent = String(visible.length);
-    activeListLabel.textContent = activeTab === 'jailed' ? 'Name:' : 'Name:';
 
     if (visible.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'empty-list';
-        empty.textContent = activeTab === 'jailed' ? 'Keine Spieler im AdminJail' : 'Keine Spieler gefunden';
+        empty.textContent = activeTab === 'jailed'
+            ? 'Keine Spieler im AdminJail'
+            : 'Keine Spieler gefunden';
         playerList.appendChild(empty);
         return;
     }
 
     visible.forEach((player) => {
         const row = document.createElement('article');
-        row.className = 'ws-row';
+        row.className = 'player-row';
 
         const main = document.createElement('div');
-        main.className = 'row-main';
+        main.className = 'player-main';
 
         const avatar = document.createElement('div');
-        avatar.className = 'row-avatar';
+        avatar.className = `player-avatar ${player.isJailed ? 'jailed' : ''}`;
+        avatar.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M5 20c0-4 3.5-6 7-6s7 2 7 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 
-        const name = document.createElement('div');
-        name.className = 'row-name';
+        const info = document.createElement('div');
+        info.className = 'player-info';
 
-        const status = document.createElement('span');
-        status.className = `row-status-dot ${player.isJailed ? 'jailed' : ''}`;
+        const name = document.createElement('strong');
+        name.textContent = player.name;
 
-        const nameText = document.createElement('span');
-        nameText.textContent = player.name;
+        const meta = document.createElement('small');
+        meta.textContent = player.isJailed
+            ? `${player.jailTypeLabel} · ${player.penalty}`
+            : 'Online';
 
-        name.appendChild(status);
-        name.appendChild(nameText);
+        info.appendChild(name);
+        info.appendChild(meta);
+
         main.appendChild(avatar);
-        main.appendChild(name);
+        main.appendChild(info);
 
         const id = document.createElement('div');
-        id.className = 'row-id';
+        id.className = 'player-id';
         id.textContent = String(player.id);
 
         const action = document.createElement('button');
         action.type = 'button';
         action.className = `row-action ${player.isJailed ? 'jailed' : ''}`;
         action.title = player.isJailed ? 'Strafe bearbeiten / freilassen' : 'Spieler inhaftieren';
-        action.disabled = (!player.isJailed && !permissions.jail) || (player.isJailed && !permissions.edit && !permissions.unjail);
+        action.disabled = (!player.isJailed && !permissions.jail)
+            || (player.isJailed && !permissions.edit && !permissions.unjail);
+        action.appendChild(createActionIcon(player.isJailed));
         action.addEventListener('click', () => {
-            if (player.isJailed) {
-                openJailPopup(player, 'edit');
-            } else {
-                openJailPopup(player, 'create');
-            }
+            openJailPopup(player, player.isJailed ? 'edit' : 'create');
         });
 
         row.appendChild(main);
@@ -220,9 +253,13 @@ function renderList() {
 function openJailPopup(player, mode = 'create') {
     selectedPlayer = normalizePlayer(player);
     popupMode = mode;
+
     selectedPlayerBox.classList.add('visible');
     popupPlayerName.textContent = selectedPlayer.name;
     popupPlayerId.textContent = String(selectedPlayer.id);
+
+    modalEyebrow.textContent = mode === 'edit' ? 'Strafe bearbeiten' : 'Neue Strafe';
+    modalTitle.textContent = mode === 'edit' ? selectedPlayer.name : 'Spieler bestrafen';
 
     popupReason.disabled = mode === 'edit';
     popupReason.value = mode === 'edit' ? selectedPlayer.reason : '';
@@ -235,7 +272,7 @@ function openJailPopup(player, mode = 'create') {
 
     popupReleaseBtn.classList.toggle('hidden', mode !== 'edit' || !permissions.unjail);
     dialogActions.classList.toggle('has-release', mode === 'edit' && permissions.unjail);
-    popupStartBtn.textContent = mode === 'edit' ? 'Save ➜' : 'Start ➜';
+    popupStartBtn.textContent = mode === 'edit' ? 'Speichern' : 'Strafe starten';
 
     setSelectedType(mode === 'edit' ? selectedPlayer.jailType : 'standard');
     validatePopup();
@@ -261,6 +298,8 @@ function submitPopup() {
         if (amount > 0 && permissions.edit) {
             post('editJail', { id: selectedPlayer.id, amount });
             closeJailPopup();
+        } else {
+            validatePopup();
         }
         return;
     }
@@ -299,6 +338,7 @@ function openMenu(data) {
     onlinePlayers = onlinePlayers.map(normalizePlayer).sort((a, b) => Number(a.id) - Number(b.id));
     jailedPlayers = jailedPlayers.map(normalizePlayer).sort((a, b) => Number(a.id) - Number(b.id));
 
+    setActiveTab('players');
     adminMenu.classList.remove('hidden');
     closeJailPopup();
     renderList();
@@ -327,18 +367,14 @@ function updateJailHud(data) {
 
     if (data.remainingSeconds !== undefined) {
         const seconds = Math.max(Number(data.remainingSeconds) || 0, 0);
-        jailValueLabel.textContent = 'Time:';
-        jailValueIcon.className = 'hud-icon clock-icon';
-        jailValueText.textContent = `${formatClock(seconds)} (${Math.max(Math.ceil(seconds / 60), 0)})`;
+        jailValueLabel.textContent = 'Restzeit';
+        jailValueText.textContent = `${formatClock(seconds)} · ${Math.max(Math.ceil(seconds / 60), 0)} Min`;
     } else {
         const done = Number(data.tasksCompleted) || 0;
         const required = Number(data.tasksRequired) || 0;
         const remaining = Math.max(required - done, 0);
-        const jailTypeKey = String(data.jailTypeKey || '').toLowerCase();
-
-        jailValueLabel.textContent = 'Points:';
-        jailValueIcon.className = `hud-icon ${jailTypeKey === 'facility' ? 'toilet-icon' : 'broom-icon'}`;
-        jailValueText.textContent = `${remaining} (${required})`;
+        jailValueLabel.textContent = 'Aufgaben';
+        jailValueText.textContent = `${remaining} offen · ${required} gesamt`;
     }
 }
 
@@ -381,7 +417,7 @@ function openMinigame(config) {
         spot.type = 'button';
         const isDirty = dirtyIndexes.includes(i);
         spot.className = `minigame-spot ${isDirty ? 'dirty' : 'clean'}`;
-        spot.textContent = isDirty ? '🦠' : '✨';
+        spot.textContent = isDirty ? '🧽' : '✨';
         spot.disabled = !isDirty;
 
         if (isDirty) {
