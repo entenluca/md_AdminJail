@@ -1,3 +1,11 @@
+@font-face {
+    font-family: "MainFont";
+    src: url("fonts/Main.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
     --bg-glass: rgba(6, 10, 18, 0.55);
     --surface: #111827;
@@ -31,7 +39,7 @@ body {
     height: 100%;
     overflow: hidden;
     background: transparent !important;
-    font-family: "Segoe UI", Inter, Roboto, Arial, sans-serif;
+    font-family: "MainFont", "Segoe UI", Inter, Roboto, Arial, sans-serif;
     color: var(--text);
 }
 
