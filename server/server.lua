@@ -88,7 +88,7 @@ local function notifyAdmins(message)
 
     for _, playerId in ipairs(GetPlayers()) do
         local id = tonumber(playerId)
-        if id and (hasPermission(id, 'commands') or hasPermission(id, 'menu')) then
+        if id and hasPermission(id, 'menu') then
             notify(id, message)
         end
     end
@@ -389,122 +389,14 @@ local function openMenu(source)
     })
 end
 
-local function handleCommand(source, args)
+local function handleCommand(source)
     if source == 0 then
-        print(('[md_AdminJail] %s'):format(Config.Locale.usage:format(Config.Commands.main)))
+        print(('[md_AdminJail] Nutze ingame: /%s oder /%s'):format(Config.Commands.main, Config.Commands.alias))
         return
     end
 
-    if not hasPermission(source, 'commands') and not hasPermission(source, 'menu') then
+    if not hasPermission(source, 'menu') then
         notify(source, Config.Locale.no_permission)
-        return
-    end
-
-    local action = args[1] and string.lower(args[1]) or 'menu'
-
-    if action == 'menu' or action == '' then
-        if not hasPermission(source, 'menu') then
-            notify(source, Config.Locale.no_permission)
-            return
-        end
-
-        openMenu(source)
-        return
-    end
-
-    if action == 'jail' then
-        if not hasPermission(source, 'jail') then
-            notify(source, Config.Locale.no_permission)
-            return
-        end
-
-        local target = parseTargetId(args[2])
-        local jailType = args[3] and string.lower(args[3]) or 'standard'
-        local amount = tonumber(args[4])
-        local reason = table.concat(args, ' ', 5)
-
-        if not target then
-            notify(source, Config.Locale.player_not_found)
-            return
-        end
-
-        if not Config.JailTypes[jailType] then
-            notify(source, Config.Locale.invalid_type)
-            return
-        end
-
-        if not validateAmount(jailType, amount) then
-            local maxValue = jailType == 'standard' and Config.MaxJailMinutes or Config.MaxTasks
-            notify(source, Config.Locale.invalid_amount:format(maxValue))
-            return
-        end
-
-        if reason == '' then
-            notify(source, Config.Locale.missing_reason)
-            return
-        end
-
-        local success, errorKey = jailPlayer(target, jailType, amount, reason, source)
-        if success then
-            notify(source, Config.Locale.jail_success:format(getPlayerNameSafe(target), getJailTypeLabel(jailType)))
-        elseif errorKey == 'already_jailed' then
-            notify(source, Config.Locale.already_jailed)
-        end
-
-        return
-    end
-
-    if action == 'release' or action == 'unjail' then
-        if not hasPermission(source, 'unjail') then
-            notify(source, Config.Locale.no_permission)
-            return
-        end
-
-        local target = parseTargetId(args[2])
-        if not target then
-            notify(source, Config.Locale.player_not_found)
-            return
-        end
-
-        if releasePlayer(target, source) then
-            notify(source, Config.Locale.unjail_success:format(getPlayerNameSafe(target)))
-        else
-            notify(source, Config.Locale.not_jailed)
-        end
-
-        return
-    end
-
-    if action == 'edit' then
-        if not hasPermission(source, 'edit') then
-            notify(source, Config.Locale.no_permission)
-            return
-        end
-
-        local target = parseTargetId(args[2])
-        local amount = tonumber(args[3])
-
-        if not target then
-            notify(source, Config.Locale.player_not_found)
-            return
-        end
-
-        local entry = getJailedEntry(target)
-        if not entry then
-            notify(source, Config.Locale.not_jailed)
-            return
-        end
-
-        if not validateAmount(entry.jailType, amount) then
-            local maxValue = entry.jailType == 'standard' and Config.MaxJailMinutes or Config.MaxTasks
-            notify(source, Config.Locale.invalid_amount:format(maxValue))
-            return
-        end
-
-        if editPlayer(target, amount, source) then
-            notify(source, Config.Locale.edit_success:format(getPlayerNameSafe(target)))
-        end
-
         return
     end
 
@@ -785,18 +677,13 @@ CreateThread(function()
     end
 end)
 
-RegisterCommand(Config.Commands.main, function(source, args)
-    handleCommand(source, args)
+RegisterCommand(Config.Commands.main, function(source)
+    handleCommand(source)
 end, false)
 
-RegisterCommand(Config.Commands.alias, function(source, args)
-    handleCommand(source, args)
+RegisterCommand(Config.Commands.alias, function(source)
+    handleCommand(source)
 end, false)
 
-TriggerEvent('chat:addSuggestion', '/' .. Config.Commands.main, 'AdminJail Menü und Verwaltung', {
-    { name = 'aktion', help = 'menu | jail | release | edit' }
-})
-
-TriggerEvent('chat:addSuggestion', '/' .. Config.Commands.alias, 'AdminJail Alias', {
-    { name = 'aktion', help = 'menu | jail | release | edit' }
-})
+TriggerEvent('chat:addSuggestion', '/' .. Config.Commands.main, 'AdminJail Menü öffnen')
+TriggerEvent('chat:addSuggestion', '/' .. Config.Commands.alias, 'AdminJail Menü öffnen')

@@ -77,15 +77,14 @@ Config.FacilityMinigame = {
 }
 
 Config.ESXGroups = {
-    superadmin = { menu = true, commands = true, jail = true, unjail = true, edit = true },
-    admin = { menu = true, commands = true, jail = true, unjail = true, edit = true },
-    mod = { menu = true, commands = true, jail = true, unjail = false, edit = false },
-    support = { menu = true, commands = false, jail = false, unjail = false, edit = false }
+    superadmin = { menu = true, jail = true, unjail = true, edit = true },
+    admin = { menu = true, jail = true, unjail = true, edit = true },
+    mod = { menu = true, jail = true, unjail = false, edit = false },
+    support = { menu = true, jail = false, unjail = false, edit = false }
 }
 
 Config.StandaloneAce = {
     menu = 'adminjail.menu',
-    commands = 'adminjail.commands',
     jail = 'adminjail.jail',
     unjail = 'adminjail.unjail',
     edit = 'adminjail.edit'
@@ -130,9 +129,5 @@ Config.Locale = {
     cannot_leave = 'Du kannst den Jail-Bereich nicht verlassen.',
     minigame_failed = 'Reinigung fehlgeschlagen. Versuche es erneut.',
     admin_notify_jail = '[AdminJail] %s hat %s bestraft (%s). Grund: %s',
-    admin_notify_unjail = '[AdminJail] %s hat %s freigelassen.',
-    usage = 'Verwendung: /%s [jail|release|edit|menu] ...',
-    usage_jail = '/%s jail [ID] [standard|community|facility] [Zeit/Tasks] [Grund]',
-    usage_release = '/%s release [ID]',
-    usage_edit = '/%s edit [ID] [neue Zeit/Tasks]'
+    admin_notify_unjail = '[AdminJail] %s hat %s freigelassen.'
 }

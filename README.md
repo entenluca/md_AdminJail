@@ -10,8 +10,8 @@ Modernes, leistungsstarkes und flexibles AdminJail-System für ESX Roleplay-Serv
 - **Facility Management** – Toiletten/Oberflächen reinigen mit integriertem Minigame
 
 ### Rechteverwaltung (ESX-Gruppen)
-- Berechtigungen pro Gruppe in `config.lua` (`menu`, `commands`, `jail`, `unjail`, `edit`)
-- Commands: `/adminjail` und `/ajail`
+- Berechtigungen pro Gruppe in `config.lua` (`menu`, `jail`, `unjail`, `edit`)
+- Commands: `/adminjail` und `/ajail` öffnen das Menü
 
 ### Admin-Menü
 - Übersicht aller aktiven Jails
@@ -48,22 +48,9 @@ ensure md_AdminJail
 | Command | Beschreibung |
 |---------|--------------|
 | `/adminjail` | Admin-Menü öffnen |
-| `/ajail` | Alias für Admin-Menü |
-| `/adminjail jail [ID] [typ] [wert] [grund]` | Strafe setzen |
-| `/adminjail release [ID]` | Spieler freilassen |
-| `/adminjail edit [ID] [neuer Wert]` | Strafe bearbeiten |
+| `/ajail` | Alias für das Admin-Menü |
 
-**Jail-Typen:** `standard`, `community`, `facility`
-
-### Beispiele
-
-```
-/adminjail jail 12 standard 30 RDM im Safezone
-/adminjail jail 8 community 10 Müll liegen lassen
-/adminjail jail 5 facility 4 Toilette nicht gereinigt
-/adminjail release 12
-/adminjail edit 12 20
-```
+Alle Aktionen (Strafe setzen, bearbeiten, freilassen) erfolgen **nur über das Menü**.
 
 ## Discord Webhooks
 
@@ -81,9 +68,9 @@ Config.Discord = {
 
 ```lua
 Config.ESXGroups = {
-    superadmin = { menu = true, commands = true, jail = true, unjail = true, edit = true },
-    admin = { menu = true, commands = true, jail = true, unjail = true, edit = true },
-    mod = { menu = true, commands = true, jail = true, unjail = false, edit = false }
+    superadmin = { menu = true, jail = true, unjail = true, edit = true },
+    admin = { menu = true, jail = true, unjail = true, edit = true },
+    mod = { menu = true, jail = true, unjail = false, edit = false }
 }
 ```
 
