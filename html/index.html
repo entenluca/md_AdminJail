@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AdminJail Panel</title>
+    <title>md_AdminJail</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="app" class="hidden">
+    <div id="adminMenu" class="overlay hidden">
         <div class="panel">
             <header class="panel-header">
                 <div>
-                    <h1>AdminJail</h1>
-                    <p>Verwaltung eingesperrter Spieler</p>
+                    <h1>md_AdminJail</h1>
+                    <p>Verwaltung aktiver Strafen</p>
                 </div>
                 <div class="header-actions">
                     <button id="refreshBtn" class="btn btn-secondary">Aktualisieren</button>
@@ -20,32 +20,63 @@
                 </div>
             </header>
 
-            <section class="stats">
-                <div class="stat-card">
-                    <span class="stat-label">Eingesperrt</span>
-                    <span id="jailCount" class="stat-value">0</span>
-                </div>
-            </section>
+            <div class="panel-grid">
+                <section class="card">
+                    <div class="card-header">
+                        <h2>Aktive Jails</h2>
+                        <span id="jailCount" class="badge">0</span>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Typ</th>
+                                    <th>Strafe</th>
+                                    <th>Grund</th>
+                                    <th>Admin</th>
+                                    <th>Aktion</th>
+                                </tr>
+                            </thead>
+                            <tbody id="playerTableBody">
+                                <tr class="empty-row">
+                                    <td colspan="7">Keine aktiven Jails</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
 
-            <section class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Restzeit</th>
-                            <th>Grund</th>
-                            <th>Admin</th>
-                            <th>Aktion</th>
-                        </tr>
-                    </thead>
-                    <tbody id="playerTableBody">
-                        <tr class="empty-row">
-                            <td colspan="6">Keine Spieler im AdminJail</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
+                <section class="card">
+                    <div class="card-header">
+                        <h2 id="formTitle">Neue Strafe</h2>
+                    </div>
+                    <form id="jailForm" class="jail-form">
+                        <input type="hidden" id="formMode" value="create">
+                        <label>
+                            Spieler ID
+                            <input id="playerId" type="number" min="1" placeholder="z.B. 12" required>
+                        </label>
+                        <label>
+                            Jail-Typ
+                            <select id="jailType" required></select>
+                        </label>
+                        <label>
+                            <span id="amountLabel">Zeit (Minuten)</span>
+                            <input id="amount" type="number" min="1" placeholder="15" required>
+                        </label>
+                        <label>
+                            Grund
+                            <textarea id="reason" rows="3" placeholder="Grund der Strafe" required></textarea>
+                        </label>
+                        <div class="form-actions">
+                            <button type="submit" id="submitBtn" class="btn btn-primary">Strafe setzen</button>
+                            <button type="button" id="cancelEditBtn" class="btn btn-secondary hidden">Abbrechen</button>
+                        </div>
+                    </form>
+                </section>
+            </div>
         </div>
     </div>
 
@@ -59,18 +90,28 @@
                     <path d="M18 21v-5M18 43v5M46 21v-5M46 43v5" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
                 </svg>
             </div>
-
-            <h1 id="jailTitle" class="jail-title">ADMINJAIL: 1 MINUTE</h1>
-
+            <h1 id="jailTitle" class="jail-title">ADMINJAIL</h1>
+            <p class="jail-type-line"><span id="jailTypeText">Standard Jail</span></p>
             <p class="jail-admin-line">
                 <span class="jail-prefix">Admin:</span>
                 <span id="jailAdminName" class="jail-admin-name">Admin</span>
             </p>
-
             <p class="jail-reason-line">
                 <span class="jail-prefix">Grund:</span>
                 <span id="jailReasonText" class="jail-reason-text">-</span>
             </p>
+        </div>
+    </div>
+
+    <div id="minigame" class="overlay hidden">
+        <div class="minigame-panel">
+            <h2>Facility Management</h2>
+            <p>Reinige alle markierten Flächen bevor die Zeit abläuft.</p>
+            <div class="minigame-top">
+                <span id="minigameTimer">12s</span>
+                <span id="minigameProgress">0/5</span>
+            </div>
+            <div id="minigameGrid" class="minigame-grid"></div>
         </div>
     </div>
 

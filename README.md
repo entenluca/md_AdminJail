@@ -1,59 +1,92 @@
 # md_AdminJail
 
-FiveM AdminJail Resource mit **Ingame-Panel** und **Commands** zur Verwaltung von Regelverstößen.
+Modernes, leistungsstarkes und flexibles AdminJail-System für ESX Roleplay-Server mit mehreren Strafenarten, Aufgaben, Admin-Menü und Discord-Integration.
 
 ## Features
 
-- Spieler per Command ins AdminJail setzen
-- Automatische Freilassung nach Ablauf der Haftzeit
-- Ingame-Panel zur Übersicht aller eingesperrten Spieler
-- Freilassen direkt aus dem Panel
-- Teleport zurück ins Jail bei Fluchtversuch
-- Waffen deaktiviert während der Haft
-- Haftzeit-Anzeige auf dem Bildschirm
-- Reconnect-Persistenz über License-Identifier
+### Drei Jail-Typen
+- **Standard Jail** – Klassische Zeitstrafe mit Countdown
+- **Community Service** – Aufgaben an definierten Punkten (fegen, Müll sammeln)
+- **Facility Management** – Toiletten/Oberflächen reinigen mit integriertem Minigame
+
+### Rechteverwaltung (ESX-Gruppen)
+- Berechtigungen pro Gruppe in `config.lua` (`menu`, `commands`, `jail`, `unjail`, `edit`)
+- Commands: `/adminjail` und `/ajail`
+
+### Admin-Menü
+- Übersicht aller aktiven Jails
+- Strafen erstellen, bearbeiten und aufheben
+- Anzeige von Typ, Grund, Zeit/Aufgaben und Admin
+
+### Spieler-HUD
+- Oben mittig wie im Referenz-Design
+- Zeigt Admin, Grund, Jail-Typ und verbleibende Strafe
+
+### Aufgaben & Sicherheit
+- Marker und [E]-Interaktion für Community/Facility-Jails
+- Automatische Entlassung nach Zeit oder abgeschlossenen Aufgaben
+- Waffen-/Angriffssperre während des Aufenthalts
+
+### Discord
+- Logs für Jail, Unjail, Edit und Autorelease
+- Serverstatistik beim Resource-Start
 
 ## Installation
 
-1. Ordner `md_AdminJail` in deinen `resources` Ordner legen
-2. In der `server.cfg` hinzufügen:
+1. Resource in `resources/[local]/md_AdminJail` legen
+2. In `server.cfg`:
 
 ```cfg
+ensure es_extended
 ensure md_AdminJail
-
-# Admin-Rechte für AdminJail
-add_ace group.admin adminjail.admin allow
-add_principal identifier.license:DEINE_LICENSE group.admin
 ```
 
-3. Server neu starten
+3. `config.lua` anpassen (Gruppen, Koordinaten, Webhooks)
 
 ## Commands
 
-| Command | Beschreibung | Beispiel |
-|---------|--------------|----------|
-| `/adminjail` | Spieler einsperren | `/adminjail 5 30 RDM im Safezone` |
-| `/adminjailrelease` | Spieler freilassen | `/adminjailrelease 5` |
-| `/adminjailpanel` | Admin-Panel öffnen | `/adminjailpanel` |
+| Command | Beschreibung |
+|---------|--------------|
+| `/adminjail` | Admin-Menü öffnen |
+| `/ajail` | Alias für Admin-Menü |
+| `/adminjail jail [ID] [typ] [wert] [grund]` | Strafe setzen |
+| `/adminjail release [ID]` | Spieler freilassen |
+| `/adminjail edit [ID] [neuer Wert]` | Strafe bearbeiten |
 
-## Konfiguration
+**Jail-Typen:** `standard`, `community`, `facility`
 
-Alle Einstellungen findest du in `config.lua`:
+### Beispiele
 
-- Jail- und Release-Position
-- Maximale Haftzeit
-- Command-Namen
-- Framework (`standalone`, `esx`, `qbcore`)
-- Deutsche Texte / Benachrichtigungen
+```
+/adminjail jail 12 standard 30 RDM im Safezone
+/adminjail jail 8 community 10 Müll liegen lassen
+/adminjail jail 5 facility 4 Toilette nicht gereinigt
+/adminjail release 12
+/adminjail edit 12 20
+```
 
-## Berechtigungen
+## Discord Webhooks
 
-Nur Spieler mit der ACE-Permission `adminjail.admin` können:
+In `config.lua`:
 
-- `/adminjail` nutzen
-- `/adminjailrelease` nutzen
-- das AdminJail Panel öffnen
+```lua
+Config.Discord = {
+    enabled = true,
+    logsWebhook = 'DEIN_LOG_WEBHOOK',
+    statsWebhook = 'DEIN_STATS_WEBHOOK'
+}
+```
 
-## Abhängigkeiten
+## ESX Gruppen
 
-Keine – funktioniert standalone. Optional kompatibel mit ESX oder QBCore für Spielernamen.
+```lua
+Config.ESXGroups = {
+    superadmin = { menu = true, commands = true, jail = true, unjail = true, edit = true },
+    admin = { menu = true, commands = true, jail = true, unjail = true, edit = true },
+    mod = { menu = true, commands = true, jail = true, unjail = false, edit = false }
+}
+```
+
+## Standalone Modus
+
+Setze `Config.Framework = 'standalone'` und nutze ACE-Permissions aus `Config.StandaloneAce`.

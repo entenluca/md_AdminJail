@@ -1,5 +1,22 @@
+local ESX = nil
 local jailedPlayers = {}
 local jailedByLicense = {}
+
+local function initESX()
+    if Config.Framework ~= 'esx' then
+        return
+    end
+
+    if exports['es_extended'] then
+        ESX = exports['es_extended']:getSharedObject()
+    else
+        TriggerEvent('esx:getSharedObject', function(obj)
+            ESX = obj
+        end)
+    end
+end
+
+initESX()
 
 local function getPlayerLicense(source)
     for _, identifier in ipairs(GetPlayerIdentifiers(source)) do
@@ -11,26 +28,53 @@ local function getPlayerLicense(source)
     return nil
 end
 
-local function getFrameworkPlayerName(source)
-    if Config.Framework == 'esx' then
-        local ESX = exports['es_extended']:getSharedObject()
+local function getPlayerNameSafe(source)
+    if ESX then
         local xPlayer = ESX.GetPlayerFromId(source)
         if xPlayer then
-            return xPlayer.getName()
-        end
-    elseif Config.Framework == 'qbcore' then
-        local QBCore = exports['qb-core']:GetCoreObject()
-        local player = QBCore.Functions.GetPlayer(source)
-        if player then
-            return player.PlayerData.charinfo.firstname .. ' ' .. player.PlayerData.charinfo.lastname
+            if xPlayer.getName then
+                return xPlayer.getName()
+            end
+
+            local playerData = xPlayer.get and xPlayer.get('firstName')
+            if playerData then
+                return playerData
+            end
         end
     end
 
     return GetPlayerName(source) or ('Spieler %s'):format(source)
 end
 
-local function isAdmin(source)
-    return IsPlayerAceAllowed(source, Config.AdminPermission)
+local function getPlayerGroup(source)
+    if ESX then
+        local xPlayer = ESX.GetPlayerFromId(source)
+        if xPlayer and xPlayer.getGroup then
+            return xPlayer.getGroup()
+        end
+    end
+
+    return 'user'
+end
+
+local function hasPermission(source, permission)
+    if source == 0 then
+        return true
+    end
+
+    if Config.Framework == 'esx' then
+        local group = getPlayerGroup(source)
+        local groupPerms = Config.ESXGroups[group]
+
+        if not groupPerms then
+            return false
+        end
+
+        return groupPerms[permission] == true
+    end
+
+    local ace = Config.StandaloneAce[permission]
+    return ace and IsPlayerAceAllowed(source, ace) or false
 end
 
 local function notify(source, message)
@@ -44,27 +88,44 @@ local function notifyAdmins(message)
 
     for _, playerId in ipairs(GetPlayers()) do
         local id = tonumber(playerId)
-        if id and isAdmin(id) then
+        if id and (hasPermission(id, 'commands') or hasPermission(id, 'menu')) then
             notify(id, message)
         end
     end
 end
 
-local function buildJailEntry(source, minutes, reason, adminSource)
-    local endTime = os.time() + (minutes * 60)
-    local license = getPlayerLicense(source)
+local function getJailTypeLabel(jailType)
+    local data = Config.JailTypes[jailType]
+    return data and data.label or jailType
+end
 
-    return {
-        source = source,
-        license = license,
-        name = getFrameworkPlayerName(source),
-        minutes = minutes,
-        reason = reason,
-        admin = adminSource and getFrameworkPlayerName(adminSource) or 'System',
-        adminSource = adminSource,
-        endTime = endTime,
-        jailedAt = os.time()
+local function buildPayload(entry)
+    local payload = {
+        active = true,
+        jailType = entry.jailType,
+        jailTypeLabel = getJailTypeLabel(entry.jailType),
+        admin = entry.admin,
+        reason = entry.reason,
+        jailCoords = {
+            x = Config.JailArea.coords.x,
+            y = Config.JailArea.coords.y,
+            z = Config.JailArea.coords.z,
+            w = Config.JailArea.coords.w
+        },
+        radius = Config.JailArea.radius
     }
+
+    if entry.jailType == 'standard' then
+        payload.endTime = entry.endTime
+        payload.remainingSeconds = math.max(entry.endTime - os.time(), 0)
+    else
+        payload.tasksRequired = entry.tasksRequired
+        payload.tasksCompleted = entry.tasksCompleted
+        payload.taskPoints = entry.jailType == 'community' and Config.CommunityServicePoints or Config.FacilityPoints
+        payload.hasMinigame = entry.jailType == 'facility'
+    end
+
+    return payload
 end
 
 local function getJailedEntry(target)
@@ -98,28 +159,50 @@ local function isPlayerJailed(target)
 end
 
 local function getRemainingMinutes(entry)
-    local remaining = math.ceil((entry.endTime - os.time()) / 60)
-    return math.max(remaining, 0)
+    if entry.jailType ~= 'standard' then
+        return 0
+    end
+
+    return math.max(math.ceil((entry.endTime - os.time()) / 60), 0)
 end
 
 local function syncJailState(target, entry)
-    TriggerClientEvent('md_adminjail:setJailed', target, {
-        active = true,
-        admin = entry.admin,
-        reason = entry.reason,
-        endTime = entry.endTime,
-        totalMinutes = entry.minutes,
-        jailCoords = {
-            x = Config.JailCoords.x,
-            y = Config.JailCoords.y,
-            z = Config.JailCoords.z,
-            w = Config.JailCoords.w
-        },
-        radius = Config.JailRadius
-    })
+    TriggerClientEvent('md_adminjail:setJailed', target, buildPayload(entry))
 end
 
-local function releasePlayer(target, adminSource, silent)
+local function formatPenalty(entry)
+    if entry.jailType == 'standard' then
+        return ('%s Min'):format(getRemainingMinutes(entry))
+    end
+
+    return ('%s/%s Aufgaben'):format(entry.tasksCompleted, entry.tasksRequired)
+end
+
+local function buildEntry(source, jailType, amount, reason, adminSource)
+    local license = getPlayerLicense(source)
+    local entry = {
+        source = source,
+        license = license,
+        name = getPlayerNameSafe(source),
+        jailType = jailType,
+        reason = reason,
+        admin = adminSource and getPlayerNameSafe(adminSource) or 'System',
+        adminSource = adminSource,
+        jailedAt = os.time()
+    }
+
+    if jailType == 'standard' then
+        entry.minutes = amount
+        entry.endTime = os.time() + (amount * 60)
+    else
+        entry.tasksRequired = amount
+        entry.tasksCompleted = 0
+    end
+
+    return entry
+end
+
+local function releasePlayer(target, adminSource, silent, reason)
     local entry = getJailedEntry(target)
     if not entry then
         return false
@@ -134,10 +217,10 @@ local function releasePlayer(target, adminSource, silent)
     TriggerClientEvent('md_adminjail:setJailed', target, {
         active = false,
         releaseCoords = {
-            x = Config.ReleaseCoords.x,
-            y = Config.ReleaseCoords.y,
-            z = Config.ReleaseCoords.z,
-            w = Config.ReleaseCoords.w
+            x = Config.JailArea.release.x,
+            y = Config.JailArea.release.y,
+            z = Config.JailArea.release.z,
+            w = Config.JailArea.release.w
         }
     })
 
@@ -145,22 +228,39 @@ local function releasePlayer(target, adminSource, silent)
         notify(target, Config.Locale.unjailed_notify)
 
         if adminSource then
-            notifyAdmins(Config.Locale.admin_unjail_notify:format(
-                getFrameworkPlayerName(adminSource),
+            notifyAdmins(Config.Locale.admin_notify_unjail:format(
+                getPlayerNameSafe(adminSource),
                 entry.name
             ))
+
+            Discord.SendLog('Spieler freigelassen', nil, Config.Discord.colors.unjail, {
+                { name = 'Admin', value = getPlayerNameSafe(adminSource), inline = true },
+                { name = 'Spieler', value = entry.name, inline = true },
+                { name = 'Typ', value = getJailTypeLabel(entry.jailType), inline = true },
+                { name = 'Grund', value = entry.reason, inline = false }
+            })
+        elseif reason == 'autorelease' then
+            Discord.SendLog('Automatische Entlassung', nil, Config.Discord.colors.autorelease, {
+                { name = 'Spieler', value = entry.name, inline = true },
+                { name = 'Typ', value = getJailTypeLabel(entry.jailType), inline = true },
+                { name = 'Grund', value = entry.reason, inline = false }
+            })
         end
     end
 
     return true
 end
 
-local function jailPlayer(target, minutes, reason, adminSource)
+local function jailPlayer(target, jailType, amount, reason, adminSource)
     if isPlayerJailed(target) then
         return false, 'already_jailed'
     end
 
-    local entry = buildJailEntry(target, minutes, reason, adminSource)
+    if not Config.JailTypes[jailType] then
+        return false, 'invalid_type'
+    end
+
+    local entry = buildEntry(target, jailType, amount, reason, adminSource)
     jailedPlayers[target] = entry
 
     if entry.license then
@@ -171,17 +271,52 @@ local function jailPlayer(target, minutes, reason, adminSource)
 
     notify(target, Config.Locale.jailed_notify:format(
         entry.admin,
-        minutes,
+        getJailTypeLabel(jailType),
         reason
     ))
 
     if adminSource then
-        notifyAdmins(Config.Locale.admin_jail_notify:format(
+        notifyAdmins(Config.Locale.admin_notify_jail:format(
             entry.admin,
             entry.name,
-            minutes,
+            getJailTypeLabel(jailType),
             reason
         ))
+
+        Discord.SendLog('Spieler bestraft', nil, Config.Discord.colors.jail, {
+            { name = 'Admin', value = entry.admin, inline = true },
+            { name = 'Spieler', value = entry.name, inline = true },
+            { name = 'Typ', value = getJailTypeLabel(jailType), inline = true },
+            { name = 'Wert', value = jailType == 'standard' and (amount .. ' Min') or (amount .. ' Aufgaben'), inline = true },
+            { name = 'Grund', value = reason, inline = false }
+        })
+    end
+
+    return true
+end
+
+local function editPlayer(target, amount, adminSource)
+    local entry = getJailedEntry(target)
+    if not entry then
+        return false, 'not_jailed'
+    end
+
+    if entry.jailType == 'standard' then
+        entry.minutes = amount
+        entry.endTime = os.time() + (amount * 60)
+    else
+        entry.tasksRequired = amount
+    end
+
+    syncJailState(target, entry)
+
+    if adminSource then
+        Discord.SendLog('Strafe bearbeitet', nil, Config.Discord.colors.edit, {
+            { name = 'Admin', value = getPlayerNameSafe(adminSource), inline = true },
+            { name = 'Spieler', value = entry.name, inline = true },
+            { name = 'Typ', value = getJailTypeLabel(entry.jailType), inline = true },
+            { name = 'Neuer Wert', value = entry.jailType == 'standard' and (amount .. ' Min') or (amount .. ' Aufgaben'), inline = true }
+        })
     end
 
     return true
@@ -195,17 +330,19 @@ local function getPanelData()
         local entry = source and getJailedEntry(source)
 
         if entry then
-            local remaining = getRemainingMinutes(entry)
-            if remaining <= 0 then
-                releasePlayer(source, nil, true)
+            if entry.jailType == 'standard' and getRemainingMinutes(entry) <= 0 then
+                releasePlayer(source, nil, false, 'autorelease')
             else
                 data[#data + 1] = {
                     id = source,
                     name = entry.name,
-                    minutes = remaining,
-                    totalMinutes = entry.minutes,
+                    jailType = entry.jailType,
+                    jailTypeLabel = getJailTypeLabel(entry.jailType),
                     reason = entry.reason,
                     admin = entry.admin,
+                    penalty = formatPenalty(entry),
+                    amount = entry.jailType == 'standard' and getRemainingMinutes(entry) or entry.tasksRequired,
+                    progress = entry.jailType == 'standard' and getRemainingMinutes(entry) or entry.tasksCompleted,
                     jailedAt = entry.jailedAt
                 }
             end
@@ -228,21 +365,244 @@ local function parseTargetId(input)
     return target
 end
 
-RegisterNetEvent('md_adminjail:requestPanel', function()
-    local source = source
+local function validateAmount(jailType, amount)
+    if not amount or amount < 1 then
+        return false
+    end
 
-    if not isAdmin(source) then
+    if jailType == 'standard' then
+        return amount <= Config.MaxJailMinutes
+    end
+
+    return amount <= Config.MaxTasks
+end
+
+local function openMenu(source)
+    TriggerClientEvent('md_adminjail:openMenu', source, {
+        players = getPanelData(),
+        jailTypes = Config.JailTypes,
+        permissions = {
+            jail = hasPermission(source, 'jail'),
+            unjail = hasPermission(source, 'unjail'),
+            edit = hasPermission(source, 'edit')
+        }
+    })
+end
+
+local function handleCommand(source, args)
+    if source == 0 then
+        print(('[md_AdminJail] %s'):format(Config.Locale.usage:format(Config.Commands.main)))
+        return
+    end
+
+    if not hasPermission(source, 'commands') and not hasPermission(source, 'menu') then
         notify(source, Config.Locale.no_permission)
         return
     end
 
-    TriggerClientEvent('md_adminjail:openPanel', source, getPanelData())
-end)
+    local action = args[1] and string.lower(args[1]) or 'menu'
 
-RegisterNetEvent('md_adminjail:unjailFromPanel', function(targetId)
+    if action == 'menu' or action == '' then
+        if not hasPermission(source, 'menu') then
+            notify(source, Config.Locale.no_permission)
+            return
+        end
+
+        openMenu(source)
+        return
+    end
+
+    if action == 'jail' then
+        if not hasPermission(source, 'jail') then
+            notify(source, Config.Locale.no_permission)
+            return
+        end
+
+        local target = parseTargetId(args[2])
+        local jailType = args[3] and string.lower(args[3]) or 'standard'
+        local amount = tonumber(args[4])
+        local reason = table.concat(args, ' ', 5)
+
+        if not target then
+            notify(source, Config.Locale.player_not_found)
+            return
+        end
+
+        if not Config.JailTypes[jailType] then
+            notify(source, Config.Locale.invalid_type)
+            return
+        end
+
+        if not validateAmount(jailType, amount) then
+            local maxValue = jailType == 'standard' and Config.MaxJailMinutes or Config.MaxTasks
+            notify(source, Config.Locale.invalid_amount:format(maxValue))
+            return
+        end
+
+        if reason == '' then
+            notify(source, Config.Locale.missing_reason)
+            return
+        end
+
+        local success, errorKey = jailPlayer(target, jailType, amount, reason, source)
+        if success then
+            notify(source, Config.Locale.jail_success:format(getPlayerNameSafe(target), getJailTypeLabel(jailType)))
+        elseif errorKey == 'already_jailed' then
+            notify(source, Config.Locale.already_jailed)
+        end
+
+        return
+    end
+
+    if action == 'release' or action == 'unjail' then
+        if not hasPermission(source, 'unjail') then
+            notify(source, Config.Locale.no_permission)
+            return
+        end
+
+        local target = parseTargetId(args[2])
+        if not target then
+            notify(source, Config.Locale.player_not_found)
+            return
+        end
+
+        if releasePlayer(target, source) then
+            notify(source, Config.Locale.unjail_success:format(getPlayerNameSafe(target)))
+        else
+            notify(source, Config.Locale.not_jailed)
+        end
+
+        return
+    end
+
+    if action == 'edit' then
+        if not hasPermission(source, 'edit') then
+            notify(source, Config.Locale.no_permission)
+            return
+        end
+
+        local target = parseTargetId(args[2])
+        local amount = tonumber(args[3])
+
+        if not target then
+            notify(source, Config.Locale.player_not_found)
+            return
+        end
+
+        local entry = getJailedEntry(target)
+        if not entry then
+            notify(source, Config.Locale.not_jailed)
+            return
+        end
+
+        if not validateAmount(entry.jailType, amount) then
+            local maxValue = entry.jailType == 'standard' and Config.MaxJailMinutes or Config.MaxTasks
+            notify(source, Config.Locale.invalid_amount:format(maxValue))
+            return
+        end
+
+        if editPlayer(target, amount, source) then
+            notify(source, Config.Locale.edit_success:format(getPlayerNameSafe(target)))
+        end
+
+        return
+    end
+
+    openMenu(source)
+end
+
+RegisterNetEvent('md_adminjail:requestMenu', function()
     local source = source
 
-    if not isAdmin(source) then
+    if not hasPermission(source, 'menu') then
+        notify(source, Config.Locale.no_permission)
+        return
+    end
+
+    openMenu(source)
+end)
+
+RegisterNetEvent('md_adminjail:createJail', function(data)
+    local source = source
+
+    if not hasPermission(source, 'jail') then
+        notify(source, Config.Locale.no_permission)
+        return
+    end
+
+    local target = parseTargetId(data.id)
+    local jailType = data.jailType and string.lower(data.jailType) or 'standard'
+    local amount = tonumber(data.amount)
+    local reason = data.reason or ''
+
+    if not target then
+        notify(source, Config.Locale.player_not_found)
+        return
+    end
+
+    if not Config.JailTypes[jailType] then
+        notify(source, Config.Locale.invalid_type)
+        return
+    end
+
+    if not validateAmount(jailType, amount) then
+        local maxValue = jailType == 'standard' and Config.MaxJailMinutes or Config.MaxTasks
+        notify(source, Config.Locale.invalid_amount:format(maxValue))
+        return
+    end
+
+    if reason == '' then
+        notify(source, Config.Locale.missing_reason)
+        return
+    end
+
+    local success, errorKey = jailPlayer(target, jailType, amount, reason, source)
+    if success then
+        notify(source, Config.Locale.jail_success:format(getPlayerNameSafe(target), getJailTypeLabel(jailType)))
+        openMenu(source)
+    elseif errorKey == 'already_jailed' then
+        notify(source, Config.Locale.already_jailed)
+    end
+end)
+
+RegisterNetEvent('md_adminjail:editJail', function(data)
+    local source = source
+
+    if not hasPermission(source, 'edit') then
+        notify(source, Config.Locale.no_permission)
+        return
+    end
+
+    local target = parseTargetId(data.id)
+    local amount = tonumber(data.amount)
+
+    if not target then
+        notify(source, Config.Locale.player_not_found)
+        return
+    end
+
+    local entry = getJailedEntry(target)
+    if not entry then
+        notify(source, Config.Locale.not_jailed)
+        return
+    end
+
+    if not validateAmount(entry.jailType, amount) then
+        local maxValue = entry.jailType == 'standard' and Config.MaxJailMinutes or Config.MaxTasks
+        notify(source, Config.Locale.invalid_amount:format(maxValue))
+        return
+    end
+
+    if editPlayer(target, amount, source) then
+        notify(source, Config.Locale.edit_success:format(getPlayerNameSafe(target)))
+        openMenu(source)
+    end
+end)
+
+RegisterNetEvent('md_adminjail:releaseJail', function(targetId)
+    local source = source
+
+    if not hasPermission(source, 'unjail') then
         notify(source, Config.Locale.no_permission)
         return
     end
@@ -254,11 +614,57 @@ RegisterNetEvent('md_adminjail:unjailFromPanel', function(targetId)
     end
 
     if releasePlayer(target, source) then
-        notify(source, Config.Locale.unjail_success:format(getFrameworkPlayerName(target)))
-        TriggerClientEvent('md_adminjail:openPanel', source, getPanelData())
+        notify(source, Config.Locale.unjail_success:format(getPlayerNameSafe(target)))
+        openMenu(source)
     else
         notify(source, Config.Locale.not_jailed)
     end
+end)
+
+RegisterNetEvent('md_adminjail:completeTask', function(taskIndex, minigameSuccess)
+    local source = source
+    local entry = getJailedEntry(source)
+
+    if not entry or entry.jailType == 'standard' then
+        return
+    end
+
+    if entry.jailType == 'facility' and minigameSuccess == false then
+        notify(source, Config.Locale.minigame_failed)
+        return
+    end
+
+    local points = entry.jailType == 'community' and Config.CommunityServicePoints or Config.FacilityPoints
+    local point = points[taskIndex]
+
+    if not point then
+        return
+    end
+
+    local ped = GetPlayerPed(source)
+    if ped <= 0 then
+        return
+    end
+
+    local playerCoords = GetEntityCoords(ped)
+    if #(playerCoords - point.coords) > (Config.Markers.interactDistance + 2.5) then
+        return
+    end
+
+    entry.tasksCompleted = entry.tasksCompleted + 1
+
+    if entry.tasksCompleted >= entry.tasksRequired then
+        releasePlayer(source, nil, false, 'autorelease')
+        notify(source, Config.Locale.all_tasks_done)
+        return
+    end
+
+    if entry.license then
+        jailedByLicense[entry.license] = entry
+    end
+
+    notify(source, Config.Locale.task_done:format(entry.tasksCompleted, entry.tasksRequired))
+    syncJailState(source, entry)
 end)
 
 RegisterNetEvent('md_adminjail:requestState', function()
@@ -270,9 +676,8 @@ RegisterNetEvent('md_adminjail:requestState', function()
         return
     end
 
-    local remaining = getRemainingMinutes(entry)
-    if remaining <= 0 then
-        releasePlayer(source, nil, true)
+    if entry.jailType == 'standard' and getRemainingMinutes(entry) <= 0 then
+        releasePlayer(source, nil, false, 'autorelease')
         return
     end
 
@@ -290,6 +695,24 @@ AddEventHandler('playerDropped', function()
     jailedPlayers[source] = nil
 end)
 
+AddEventHandler('esx:playerLoaded', function(playerId)
+    SetTimeout(3000, function()
+        local source = playerId
+        local entry = getJailedEntry(source)
+
+        if not entry then
+            return
+        end
+
+        if entry.jailType == 'standard' and getRemainingMinutes(entry) <= 0 then
+            releasePlayer(source, nil, false, 'autorelease')
+            return
+        end
+
+        syncJailState(source, entry)
+    end)
+end)
+
 AddEventHandler('playerJoining', function()
     local source = source
 
@@ -303,12 +726,47 @@ AddEventHandler('playerJoining', function()
             return
         end
 
-        if getRemainingMinutes(entry) <= 0 then
-            releasePlayer(source, nil, true)
+        if entry.jailType == 'standard' and getRemainingMinutes(entry) <= 0 then
+            releasePlayer(source, nil, false, 'autorelease')
             return
         end
 
         syncJailState(source, entry)
+    end)
+end)
+
+AddEventHandler('onResourceStart', function(resourceName)
+    if resourceName ~= GetCurrentResourceName() then
+        return
+    end
+
+    SetTimeout(4000, function()
+        local fields = {}
+        local count = 0
+
+        for _, playerId in ipairs(GetPlayers()) do
+            local source = tonumber(playerId)
+            local entry = source and getJailedEntry(source)
+
+            if entry then
+                count = count + 1
+                fields[#fields + 1] = {
+                    name = entry.name,
+                    value = ('%s | %s | %s'):format(getJailTypeLabel(entry.jailType), formatPenalty(entry), entry.reason),
+                    inline = false
+                }
+            end
+        end
+
+        if count == 0 then
+            fields[#fields + 1] = {
+                name = 'Status',
+                value = 'Keine aktiven Jails',
+                inline = false
+            }
+        end
+
+        Discord.SendStats('Server Start - AdminJail Statistik', ('Aktive Jails: **%s**'):format(count), fields)
     end)
 end)
 
@@ -320,99 +778,25 @@ CreateThread(function()
             local source = tonumber(playerId)
             local entry = source and getJailedEntry(source)
 
-            if entry and getRemainingMinutes(entry) <= 0 then
-                releasePlayer(source, nil, false)
+            if entry and entry.jailType == 'standard' and getRemainingMinutes(entry) <= 0 then
+                releasePlayer(source, nil, false, 'autorelease')
             end
         end
     end
 end)
 
-RegisterCommand(Config.Commands.jail, function(source, args)
-    if source == 0 then
-        print(('[md_AdminJail] %s'):format(Config.Locale.usage_jail:format(Config.Commands.jail)))
-        return
-    end
-
-    if not isAdmin(source) then
-        notify(source, Config.Locale.no_permission)
-        return
-    end
-
-    local target = parseTargetId(args[1])
-    local minutes = tonumber(args[2])
-    local reason = table.concat(args, ' ', 3)
-
-    if not target then
-        notify(source, Config.Locale.player_not_found)
-        return
-    end
-
-    if not minutes or minutes < 1 or minutes > Config.MaxJailMinutes then
-        notify(source, Config.Locale.invalid_minutes:format(Config.MaxJailMinutes))
-        return
-    end
-
-    if reason == '' then
-        notify(source, Config.Locale.missing_reason)
-        return
-    end
-
-    local success, errorKey = jailPlayer(target, minutes, reason, source)
-
-    if success then
-        notify(source, Config.Locale.jail_success:format(getFrameworkPlayerName(target), minutes))
-    elseif errorKey == 'already_jailed' then
-        notify(source, Config.Locale.already_jailed)
-    end
+RegisterCommand(Config.Commands.main, function(source, args)
+    handleCommand(source, args)
 end, false)
 
-RegisterCommand(Config.Commands.unjail, function(source, args)
-    if source == 0 then
-        print(('[md_AdminJail] %s'):format(Config.Locale.usage_unjail:format(Config.Commands.unjail)))
-        return
-    end
-
-    if not isAdmin(source) then
-        notify(source, Config.Locale.no_permission)
-        return
-    end
-
-    local target = parseTargetId(args[1])
-    if not target then
-        notify(source, Config.Locale.player_not_found)
-        return
-    end
-
-    if releasePlayer(target, source) then
-        notify(source, Config.Locale.unjail_success:format(getFrameworkPlayerName(target)))
-    else
-        notify(source, Config.Locale.not_jailed)
-    end
+RegisterCommand(Config.Commands.alias, function(source, args)
+    handleCommand(source, args)
 end, false)
 
-RegisterCommand(Config.Commands.panel, function(source)
-    if source == 0 then
-        print('[md_AdminJail] Panel nur ingame verfügbar.')
-        return
-    end
-
-    if not isAdmin(source) then
-        notify(source, Config.Locale.no_permission)
-        return
-    end
-
-    TriggerClientEvent('md_adminjail:openPanel', source, getPanelData())
-    notify(source, Config.Locale.panel_opened)
-end, false)
-
-TriggerEvent('chat:addSuggestion', '/' .. Config.Commands.jail, 'Spieler ins AdminJail setzen', {
-    { name = 'id', help = 'Spieler ID' },
-    { name = 'minuten', help = 'Haftzeit in Minuten' },
-    { name = 'grund', help = 'Grund für AdminJail' }
+TriggerEvent('chat:addSuggestion', '/' .. Config.Commands.main, 'AdminJail Menü und Verwaltung', {
+    { name = 'aktion', help = 'menu | jail | release | edit' }
 })
 
-TriggerEvent('chat:addSuggestion', '/' .. Config.Commands.unjail, 'Spieler aus AdminJail entlassen', {
-    { name = 'id', help = 'Spieler ID' }
+TriggerEvent('chat:addSuggestion', '/' .. Config.Commands.alias, 'AdminJail Alias', {
+    { name = 'aktion', help = 'menu | jail | release | edit' }
 })
-
-TriggerEvent('chat:addSuggestion', '/' .. Config.Commands.panel, 'AdminJail Panel öffnen')
