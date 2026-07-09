@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>md_AdminJail</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="adminMenu" class="admin-root hidden">
+        <main class="ws-panel">
+            <header class="ws-header">
+                <div class="ws-brand">
+                    <div class="ws-title">WEB-SERVICES<span>RP</span></div>
+                    <div class="ws-subtitle">ADMINJAIL <i class="mini-cuff" aria-hidden="true"></i></div>
+                </div>
+
+                <nav class="ws-tabs" aria-label="AdminJail Tabs">
+                    <button type="button" class="ws-tab active" data-tab="players"><i class="tab-icon players-icon"></i>Players</button>
+                    <button type="button" class="ws-tab" data-tab="jailed"><i class="tab-icon jail-icon"></i>Jailed</button>
+                </nav>
+
+                <button id="closeBtn" type="button" class="ws-close-text">
+                    <span>Close current<br>Menu</span>
+                    <b>×</b>
+                </button>
+            </header>
+
+            <section class="ws-searchbar">
+                <i class="search-icon" aria-hidden="true"></i>
+                <input id="adminSearch" type="text" placeholder="Search..." autocomplete="off">
+            </section>
+
+            <section class="ws-list-head">
+                <span id="activeListLabel">Players</span>
+                <span id="jailCount">0</span>
+            </section>
+
+            <section id="playerList" class="ws-player-list" aria-live="polite"></section>
+        </main>
+
+        <section id="jailPopup" class="jail-dialog hidden" aria-modal="true" role="dialog">
+            <div class="dialog-bg-lines" aria-hidden="true"></div>
+            <header class="dialog-head">
+                <h1>DU BIST IM GEFÄNGNIS</h1>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit,<br>tempor incididunt ut labore et dolore</p>
+            </header>
+
+            <div class="selected-player">
+                <i class="selected-icon" aria-hidden="true"></i>
+                <div>
+                    <span id="popupPlayerName">Spieler</span>
+                    <small>ID: <b id="popupPlayerId">0</b></small>
+                </div>
+            </div>
+
+            <div class="form-card reason-card">
+                <i class="form-icon clipboard-icon" aria-hidden="true"></i>
+                <label for="popupReason">
+                    <span>Grund</span>
+                    <input id="popupReason" type="text" placeholder="Grund..." autocomplete="off">
+                </label>
+                <button id="popupReasonCheck" type="button" class="square-state danger">×</button>
+            </div>
+
+            <div class="form-card amount-card">
+                <i id="amountIcon" class="form-icon clock-icon" aria-hidden="true"></i>
+                <label for="popupAmount">
+                    <span id="popupAmountLabel">Time</span>
+                    <input id="popupAmount" type="number" min="1" placeholder="Zeit/Punkte eingeben..." autocomplete="off">
+                </label>
+                <button id="popupAmountCheck" type="button" class="square-state danger">×</button>
+            </div>
+
+            <div class="type-title"><i aria-hidden="true"></i>Type jail</div>
+            <div id="typeGrid" class="type-grid">
+                <button type="button" class="type-btn active" data-type="standard"><i class="type-house"></i>Default</button>
+                <button type="button" class="type-btn" data-type="community"><i class="type-house"></i>Com. Service</button>
+                <button type="button" class="type-btn wide" data-type="facility"><i class="type-house"></i>Facility Management</button>
+            </div>
+
+            <footer class="dialog-actions">
+                <button id="popupCancelBtn" type="button" class="dialog-btn cancel">Cancel <span>✖</span></button>
+                <button id="popupReleaseBtn" type="button" class="dialog-btn release hidden">Unjail <span>↩</span></button>
+                <button id="popupStartBtn" type="button" class="dialog-btn start">Start <span>➜</span></button>
+            </footer>
+        </section>
+    </div>
+
+    <div id="jailHud" class="hidden">
+        <section class="jail-hud-card">
+            <div class="hud-bg-lines" aria-hidden="true"></div>
+            <header class="hud-head">
+                <h1>DU BIST IM GEFÄNGNIS</h1>
+                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit,<br>sed do eiusmod tempor incididunt ut labore et dolore</p>
+            </header>
+
+            <div class="hud-box hud-reason-box">
+                <i class="hud-icon clipboard-icon" aria-hidden="true"></i>
+                <div>
+                    <span>Reason:</span>
+                    <strong id="jailReasonText">-</strong>
+                </div>
+            </div>
+
+            <div class="hud-bottom-grid">
+                <div class="hud-box">
+                    <i class="hud-icon admin-icon" aria-hidden="true"></i>
+                    <div>
+                        <span>Admin:</span>
+                        <strong id="jailAdminName">Admin</strong>
+                    </div>
+                </div>
+                <div class="hud-box hud-value-box">
+                    <i id="jailValueIcon" class="hud-icon clock-icon" aria-hidden="true"></i>
+                    <div>
+                        <span id="jailValueLabel">Time:</span>
+                        <strong id="jailValueText">00:00</strong>
+                    </div>
+                </div>
+            </div>
+            <span id="jailTypeText" class="hud-hidden-type">Standard Jail</span>
+            <span id="jailTitle" class="hud-hidden-title">ADMINJAIL</span>
+        </section>
+    </div>
+
+    <div id="minigame" class="overlay hidden">
+        <div class="minigame-panel">
+            <h2>Facility Management</h2>
+            <p>Reinige alle markierten Flächen bevor die Zeit abläuft.</p>
+            <div class="minigame-top">
+                <span id="minigameTimer">12s</span>
+                <span id="minigameProgress">0/5</span>
+            </div>
+            <div id="minigameGrid" class="minigame-grid"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
